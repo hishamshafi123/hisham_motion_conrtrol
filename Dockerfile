@@ -133,32 +133,15 @@ RUN sed -i '1a /opt/setup_volume.sh' /start.sh
 
 # ── 5. Patch handler to support VHS_VideoCombine 'gifs' output ────────────────
 # The official handler only processes node outputs under the "images" key.
-# VHS_VideoCombine outputs video files under "gifs". This Python patch is more
-# reliable than sed for multi-line replacements.
-RUN python -c "
-import re
+# VHS_VideoCombine outputs video files under "gifs".
+RUN cat > /tmp/patch_handler.py << 'PATCH'
 with open('/handler.py', 'r') as f:
     code = f.read()
-
-# Replace: if 'images' in node_output → merge images+gifs
-code = code.replace(
-    'if \"images\" in node_output:',
-    'if \"images\" in node_output or \"gifs\" in node_output:'
-)
-
-# Replace: for image_info in node_output['images'] → iterate merged list
-code = code.replace(
-    'for image_info in node_output[\"images\"]:',
-    'for image_info in (node_output.get(\"images\", []) + node_output.get(\"gifs\", [])):'
-)
-
-# Replace: len(node_output['images']) → count both
-code = code.replace(
-    'len(node_output[\"images\"])',
-    'len(node_output.get(\"images\", []) + node_output.get(\"gifs\", []))'
-)
-
+code = code.replace('if "images" in node_output:', 'if "images" in node_output or "gifs" in node_output:')
+code = code.replace('for image_info in node_output["images"]:', 'for image_info in (node_output.get("images", []) + node_output.get("gifs", [])):')
+code = code.replace('len(node_output["images"])', 'len(node_output.get("images", []) + node_output.get("gifs", []))')
 with open('/handler.py', 'w') as f:
     f.write(code)
 print('handler.py patched for gifs support')
-"
+PATCH
+RUN python /tmp/patch_handler.py
