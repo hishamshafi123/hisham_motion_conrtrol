@@ -1,47 +1,30 @@
 # Motion Forge 1.0 — RunPod Serverless ComfyUI Worker
-# Lightweight image — models + custom nodes live on the network volume.
+# Lightweight image: Custom nodes baked in, models loaded from network volume.
 FROM runpod/worker-comfyui:5.8.4-base
 
-# ── Symlink to Network Volume ────────────────────────────────────────────────
-# On RunPod serverless workers, the network volume mounts at /runpod-volume.
-# On GPU pods (for testing), it mounts at /workspace.
-# The start.sh script in the base image handles both paths, but we
-# explicitly symlink /comfyui/models and /comfyui/custom_nodes to the
-# volume so ComfyUI finds everything at runtime.
-#
-# All 10 models + 5 custom nodes live on the volume:
-#   models/diffusion_models/  → Wan2.2 Animate 14B, vitpose, yolov10m
-#   models/text_encoders/     → UMT5 XXL
-#   models/clip_vision/       → CLIP Vision H
-#   models/vae/               → Wan 2.1 VAE
-#   models/loras/             → 4 LoRAs (LightX2V, Pusa, Fun, 4-step)
-#   custom_nodes/             → WanVideoWrapper, WanAnimatePreprocess, etc.
+# ── 1. Custom Nodes (Baked into Image) ───────────────────────────────────────
+# We bake the custom nodes into the image to ensure they are always present 
+# and never rely on network volume symlinks for code execution.
+RUN git clone https://github.com/kijai/ComfyUI-WanVideoWrapper /comfyui/custom_nodes/ComfyUI-WanVideoWrapper && \
+    cd /comfyui/custom_nodes/ComfyUI-WanVideoWrapper && git checkout 761b1d191e50d589465e31dc0d40ff7c59b1b7b0 || true
 
-# Create a startup script that detects the volume mount point and symlinks
-RUN cat > /opt/setup_volume.sh << 'EOF'
-#!/bin/bash
-# Detect volume mount point (serverless = /runpod-volume, pods = /workspace)
-if [ -d "/runpod-volume/ComfyUI/models" ]; then
-    VOLUME_PATH="/runpod-volume"
-elif [ -d "/workspace/ComfyUI/models" ]; then
-    VOLUME_PATH="/workspace"
-else
-    echo "WARNING: No network volume found at /runpod-volume or /workspace"
-    exit 0
-fi
+RUN git clone https://github.com/kijai/ComfyUI-KJNodes /comfyui/custom_nodes/ComfyUI-KJNodes && \
+    cd /comfyui/custom_nodes/ComfyUI-KJNodes && git checkout ad37ce656c13e9abea002b46e3a89be3dba32355 || true
 
-echo "Found volume at $VOLUME_PATH — symlinking models and custom_nodes"
-rm -rf /comfyui/models /comfyui/custom_nodes
-ln -sf $VOLUME_PATH/ComfyUI/models /comfyui/models
-ln -sf $VOLUME_PATH/ComfyUI/custom_nodes /comfyui/custom_nodes
-EOF
-RUN chmod +x /opt/setup_volume.sh
+RUN git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite /comfyui/custom_nodes/ComfyUI-VideoHelperSuite && \
+    cd /comfyui/custom_nodes/ComfyUI-VideoHelperSuite && git checkout 8550981384301e9bc5bfea83e5c2c75258102593 || true
 
-# Inject volume setup into the existing start.sh (runs before ComfyUI starts)
-RUN sed -i '1a /opt/setup_volume.sh' /start.sh
+RUN git clone https://github.com/kijai/ComfyUI-WanAnimatePreprocess /comfyui/custom_nodes/ComfyUI-WanAnimatePreprocess && \
+    cd /comfyui/custom_nodes/ComfyUI-WanAnimatePreprocess && git checkout 1a35b81a418bbba093356ad19b19bf2a76a24f4e || true
 
-# ── Python Dependencies (required by custom nodes) ──────────────────────────
-# Must be baked into the image — the base image doesn't run pip on startup.
+RUN comfy node install --exit-on-fail comfyui-wanvideowrapper@1.4.5 --mode remote || \
+    comfy node install --exit-on-fail comfyui-wanvideowrapper --mode remote
+
+RUN comfy node install --exit-on-fail rgthree-comfy || true
+
+RUN git clone https://github.com/teskor-hub/comfyui-teskors-utils /comfyui/custom_nodes/comfyui-teskors-utils
+
+# ── 2. Python Dependencies ───────────────────────────────────────────────────
 RUN pip install --no-cache-dir \
     diffusers>=0.30 \
     transformers>=4.45 \
@@ -55,3 +38,36 @@ RUN pip install --no-cache-dir \
     sentencepiece \
     ftfy \
     moviepy
+
+# ── 3. Extra Model Paths ─────────────────────────────────────────────────────
+# This tells ComfyUI to search for models on the network volume automatically
+# without needing symlinks or startup scripts.
+RUN cat > /comfyui/extra_model_paths.yaml << 'EOF'
+runpod_volume:
+    base_path: /runpod-volume/ComfyUI/models
+    checkpoints: checkpoints
+    clip: clip
+    clip_vision: clip_vision
+    configs: configs
+    controlnet: controlnet
+    diffusion_models: diffusion_models
+    embeddings: embeddings
+    loras: loras
+    upscale_models: upscale_models
+    vae: vae
+    text_encoders: text_encoders
+
+workspace_volume:
+    base_path: /workspace/ComfyUI/models
+    checkpoints: checkpoints
+    clip: clip
+    clip_vision: clip_vision
+    configs: configs
+    controlnet: controlnet
+    diffusion_models: diffusion_models
+    embeddings: embeddings
+    loras: loras
+    upscale_models: upscale_models
+    vae: vae
+    text_encoders: text_encoders
+EOF
