@@ -25,8 +25,13 @@ RUN comfy node install --exit-on-fail rgthree-comfy || true
 RUN git clone https://github.com/teskor-hub/comfyui-teskors-utils /comfyui/custom_nodes/comfyui-teskors-utils
 
 # ── 2. Python Dependencies ───────────────────────────────────────────────────
-RUN pip install --no-cache-dir \
-    diffusers>=0.30 \
+# Find and install all requirements from the custom nodes we just cloned
+RUN find /comfyui/custom_nodes -name "requirements.txt" -exec uv pip install -r {} \; || \
+    find /comfyui/custom_nodes -name "requirements.txt" -exec pip install -r {} \;
+
+# Also ensure any other missing packages are installed
+RUN uv pip install --no-cache-dir \
+    diffusers>=0.33.0 \
     transformers>=4.45 \
     onnxruntime-gpu \
     opencv-python-headless \
@@ -37,7 +42,13 @@ RUN pip install --no-cache-dir \
     einops \
     sentencepiece \
     ftfy \
-    moviepy
+    moviepy \
+    accelerate>=1.2.1 \
+    peft>=0.17.0 \
+    protobuf \
+    pyloudnorm \
+    gguf>=0.17.1 \
+    scipy
 
 # ── 3. Extra Model Paths ─────────────────────────────────────────────────────
 # This tells ComfyUI to search for models on the network volume automatically
