@@ -140,6 +140,8 @@ with open('/handler.py', 'r') as f:
 code = code.replace('if "images" in node_output:', 'if "images" in node_output or "gifs" in node_output:')
 code = code.replace('for image_info in node_output["images"]:', 'for image_info in (node_output.get("images", []) + node_output.get("gifs", [])):')
 code = code.replace('len(node_output["images"])', 'len(node_output.get("images", []) + node_output.get("gifs", []))')
+code = code.replace("len(node_output['images'])", "len(node_output.get('images', []) + node_output.get('gifs', []))")
+code = code.replace("node_output['images']", "node_output.get('images', [])")
 with open('/handler.py', 'w') as f:
     f.write(code)
 print('handler.py patched for gifs support')
