@@ -20,7 +20,7 @@ RUN git clone https://github.com/kijai/ComfyUI-WanAnimatePreprocess /comfyui/cus
 RUN comfy node install --exit-on-fail comfyui-wanvideowrapper@1.4.5 --mode remote || \
     comfy node install --exit-on-fail comfyui-wanvideowrapper --mode remote
 
-RUN comfy node install --exit-on-fail rgthree-comfy || true
+RUN git clone https://github.com/rgthree/rgthree-comfy /comfyui/custom_nodes/rgthree-comfy || true
 
 RUN git clone https://github.com/teskor-hub/comfyui-teskors-utils /comfyui/custom_nodes/comfyui-teskors-utils
 
@@ -67,6 +67,7 @@ runpod_volume:
     upscale_models: upscale_models
     vae: vae
     text_encoders: text_encoders
+    detection: detection
 
 workspace_volume:
     base_path: /workspace/ComfyUI/models
@@ -81,4 +82,5 @@ workspace_volume:
     upscale_models: upscale_models
     vae: vae
     text_encoders: text_encoders
+    detection: detection
 EOF

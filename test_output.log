@@ -1,0 +1,28 @@
+
+📁 Encoding input files...
+   Encoding ref_image.jpeg (1.9 MB)...
+   Encoding ref_video.mp4 (4.0 MB)...
+
+============================================================
+🖼️  Image:    reference_input/ref_image.jpeg
+🎬 Video:    reference_input/ref_video.mp4
+🎯 Endpoint: vmeviwdmth79mz
+💾 Output:   reference_input/output.mp4
+============================================================
+
+📤 Submitting job (7.8 MB payload)...
+   ✅ Job submitted: 05a6f685-ffdb-4953-9553-afb7d58b3791-e1
+   [   0.2s] Status: IN_QUEUE
+   [   5.3s] Status: FAILED
+
+❌ Job FAILED after 5.3s
+   Error: Workflow validation failed:
+• Node 90 (errors): [{'type': 'value_not_in_list', 'message': 'Value not in list', 'details': "yolo_model: 'yolov10m.onnx' not in []", 'extra_info': {'input_name': 'yolo_model', 'input_config': [[], {'tooltip': "These models are loaded from the 'ComfyUI/models/detection' -folder"}], 'received_value': 'yolov10m.onnx'}}, {'type': 'value_not_in_list', 'message': 'Value not in list', 'details': "vitpose_model: 'vitpose_h_wholebody_model.onnx' not in []", 'extra_info': {'input_name': 'vitpose_model', 'input_config': [[], {'tooltip': "These models are loaded from the 'ComfyUI/models/detection' -folder"}], 'received_value': 'vitpose_h_wholebody_model.onnx'}}]
+• Node 90 (dependent_outputs): ['319', '505']
+• Node 90 (class_type): OnnxDetectionModelLoader
+• Node 270 (errors): [{'type': 'value_not_in_list', 'message': 'Value not in list', 'details': "colormatch: 'False' not in ['disabled', 'mkl', 'hm', 'reinhard', 'mvgd', 'hm-mvgd-hm', 'hm-mkl-hm']", 'extra_info': {'input_name': 'colormatch', 'input_config': [['disabled', 'mkl', 'hm', 'reinhard', 'mvgd', 'hm-mvgd-hm', 'hm-mkl-hm'], {'default': 'disabled', 'tooltip': 'Color matching method to use between the windows'}], 'received_value': False}}]
+• Node 270 (dependent_outputs): ['319', '505']
+• Node 270 (class_type): WanVideoAnimateEmbeds
+• Node 28 (errors): [{'type': 'required_input_missing', 'message': 'Required input is missing', 'details': 'enable_vae_tiling', 'extra_info': {'input_name': 'enable_vae_tiling'}}]
+• Node 28 (dependent_outputs): ['319', '505']
+• Node 28 (class_type): WanVideoDecode
