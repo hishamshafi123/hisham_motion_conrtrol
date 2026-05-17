@@ -84,3 +84,49 @@ workspace_volume:
     text_encoders: text_encoders
     detection: detection
 EOF
+
+# ── 4. Runtime Volume Symlink ─────────────────────────────────────────────────
+# Some custom nodes (OnnxDetectionModelLoader) scan /comfyui/models/detection/
+# directly rather than using extra_model_paths.yaml. We create a startup script
+# that symlinks the detection folder from the network volume at runtime.
+RUN cat > /opt/setup_volume.sh << 'SETUP'
+#!/bin/bash
+echo "[setup_volume] Detecting network volume..."
+
+# Detect volume mount point
+if [ -d "/runpod-volume/ComfyUI/models" ]; then
+    VOL="/runpod-volume"
+elif [ -d "/workspace/ComfyUI/models" ]; then
+    VOL="/workspace"
+else
+    echo "[setup_volume] WARNING: No network volume found"
+    exit 0
+fi
+
+echo "[setup_volume] Found volume at $VOL"
+
+# Symlink detection models (ONNX files)
+if [ -d "$VOL/ComfyUI/models/detection" ]; then
+    mkdir -p /comfyui/models/detection
+    ln -sf $VOL/ComfyUI/models/detection/*.onnx /comfyui/models/detection/ 2>/dev/null
+    echo "[setup_volume] Linked detection models: $(ls /comfyui/models/detection/)"
+fi
+
+# Symlink all other model folders that might be missing
+for folder in diffusion_models loras vae clip_vision text_encoders checkpoints; do
+    if [ -d "$VOL/ComfyUI/models/$folder" ] && [ ! -L "/comfyui/models/$folder" ]; then
+        # Don't replace if folder has content already
+        if [ -z "$(ls -A /comfyui/models/$folder 2>/dev/null)" ]; then
+            rm -rf /comfyui/models/$folder
+            ln -sf $VOL/ComfyUI/models/$folder /comfyui/models/$folder
+            echo "[setup_volume] Linked $folder"
+        fi
+    fi
+done
+
+echo "[setup_volume] Done!"
+SETUP
+RUN chmod +x /opt/setup_volume.sh
+
+# Inject into start.sh so it runs before ComfyUI
+RUN sed -i '1a /opt/setup_volume.sh' /start.sh
