@@ -1,0 +1,9 @@
+SECRETS.md
+.env
+*.pyc
+__pycache__/
+endpoint_id.txt
+test_input.png
+*.mp4
+.mcp.json
+.DS_Store
