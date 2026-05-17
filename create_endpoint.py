@@ -5,6 +5,8 @@ Create the RunPod serverless endpoint for Motion Forge via GraphQL API.
 Usage:
     export RUNPOD_API_KEY='rpa_...'
     export DOCKERHUB_USERNAME='your_username'
+    export RUNPOD_VOLUME_ID='vol_...'
+    export RUNPOD_DATACENTER='EU-RO-1'
     export R2_ACCOUNT_ID='...'
     export R2_ACCESS_KEY_ID='...'
     export R2_SECRET_ACCESS_KEY='...'
@@ -15,6 +17,8 @@ import json, os, sys, requests
 
 RUNPOD_API_KEY = os.environ.get("RUNPOD_API_KEY", "")
 DOCKERHUB_USERNAME = os.environ.get("DOCKERHUB_USERNAME", "")
+NETWORK_VOLUME_ID = os.environ.get("RUNPOD_VOLUME_ID", "")
+VOLUME_DATACENTER = os.environ.get("RUNPOD_DATACENTER", "EU-RO-1")
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
 R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
 R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", "")
@@ -41,6 +45,7 @@ def gql(query, variables=None):
 def main():
     missing = [n for n, v in [
         ("RUNPOD_API_KEY", RUNPOD_API_KEY), ("DOCKERHUB_USERNAME", DOCKERHUB_USERNAME),
+        ("RUNPOD_VOLUME_ID", NETWORK_VOLUME_ID),
         ("R2_ACCOUNT_ID", R2_ACCOUNT_ID),
         ("R2_ACCESS_KEY_ID", R2_ACCESS_KEY_ID), ("R2_SECRET_ACCESS_KEY", R2_SECRET_ACCESS_KEY),
     ] if not v]
@@ -64,10 +69,11 @@ def main():
         sys.exit(1)
     print(f"   GPUs: {gpu_ids}")
 
-    # Create endpoint — NO network volume needed (models baked into image)
+    # Create endpoint — models + custom nodes on network volume
     image = f"{DOCKERHUB_USERNAME}/motion-forge-worker:v1"
     bucket_url = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
     print(f"\n🚀 Creating endpoint 'motion-forge-api' with image {image}...")
+    print(f"   Network Volume: {NETWORK_VOLUME_ID} ({VOLUME_DATACENTER})")
 
     mutation = """
     mutation saveEndpoint($input: EndpointInput!) {
@@ -76,8 +82,10 @@ def main():
     variables = {"input": {
         "name": "motion-forge-api", "imageName": image,
         "gpuIds": ",".join(gpu_ids),
+        "networkVolumeId": NETWORK_VOLUME_ID,
         "volumeInGb": 20, "workersMax": 5, "workersMin": 0,
         "idleTimeout": 30, "executionTimeoutMs": 1800000,
+        "locations": VOLUME_DATACENTER,
         "env": [
             {"key": "BUCKET_ENDPOINT_URL", "value": bucket_url},
             {"key": "BUCKET_ACCESS_KEY_ID", "value": R2_ACCESS_KEY_ID},
