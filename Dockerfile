@@ -130,3 +130,9 @@ RUN chmod +x /opt/setup_volume.sh
 
 # Inject into start.sh so it runs before ComfyUI
 RUN sed -i '1a /opt/setup_volume.sh' /start.sh
+
+# ── 5. Patch handler to support VHS_VideoCombine 'gifs' output ────────────────
+# The official handler only processes node outputs under the "images" key.
+# VHS_VideoCombine outputs video files under "gifs". This patch merges both.
+RUN sed -i 's/if "images" in node_output:/# Merge images + gifs (VHS_VideoCombine outputs video as "gifs")\n            all_media = node_output.get("images", []) + node_output.get("gifs", [])\n            if all_media:/' /handler.py && \
+    sed -i 's/for image_info in node_output\["images"\]:/for image_info in all_media:/' /handler.py

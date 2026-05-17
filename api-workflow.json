@@ -76,7 +76,7 @@
       "force_rate": 30,
       "custom_width": 720,
       "custom_height": 1280,
-      "frame_load_cap": 0,
+      "frame_load_cap": 33,
       "skip_first_frames": 0,
       "select_every_nth": 1,
       "format": "Wan",
@@ -330,9 +330,9 @@
   "349": {
     "inputs": {
       "model_name": "wan_2.1_vae.safetensors",
-      "dtype": "fp16",
       "force_offload": false,
-      "tiled": false
+      "tiled": false,
+      "precision": "fp16"
     },
     "class_type": "WanVideoVAELoader",
     "_meta": {
@@ -352,7 +352,7 @@
       "lora_4": "none",
       "strength_4": 0.0,
       "force_offload": false,
-      "fuse_lora": false
+      "merge_loras": false
     },
     "class_type": "WanVideoLoraSelectMulti",
     "_meta": {

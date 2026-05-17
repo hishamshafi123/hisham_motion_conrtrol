@@ -85,6 +85,9 @@ def submit_job(endpoint_id, workflow, images):
         "input": {
             "workflow": workflow,
             "images": images,
+        },
+        "policy": {
+            "executionTimeout": 1800000,  # 30 minutes in ms
         }
     }
 
